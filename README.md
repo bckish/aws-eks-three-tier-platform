@@ -25,8 +25,28 @@ terraform -chdir=Jenkins-Server-TF validate
 
 No AWS credentials are needed for syntax validation; provider downloads require internet access. For actual deployment, configure your own backend, account, ECR repositories, images, credentials, Kubernetes cluster and ingress domain. The Jenkins jobs require configured tools and credentials; the default build checks out the current SCM revision, scans the image, and does not publish. Enable PUBLISH_IMAGE only on an approved run. Update GitOps manifests via a separate reviewed PR. Do not reuse upstream infrastructure or secrets. Cloud provisioning incurs cost and requires explicit approval.
 
-The backend exposes /healthz, /ready and /started. Automated application tests and reproducible npm lockfiles are still gaps. The original [walkthrough](https://amanpathakdevops.medium.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-fbbfdb956d1a) explains the intended full deployment.
+The backend exposes /healthz, /ready and /started. The backend CRUD smoke test and Vite production build are runnable with the committed npm lockfiles. The original [walkthrough](https://amanpathakdevops.medium.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-fbbfdb956d1a) explains the intended full deployment.
 
 ## Attribution and license
 
 Original implementation by Aman Pathak. See [UPSTREAM.md](UPSTREAM.md) for the source repository and [LICENSE](LICENSE) (Apache-2.0). The upstream license and copyright notices are unchanged.
+## Local application demo (no cloud or database required)
+
+Use Node 22.12+ (or newer compatible Node). Run the backend with an explicit temporary in-memory store; task data is lost when the process exits. Set MONGO_CONN_STR instead of LOCAL_MEMORY for a real local MongoDB connection.
+
+```bash
+cd Application-Code/backend
+npm ci
+npm test
+LOCAL_MEMORY=true npm start
+```
+
+In a second terminal, from the repository root:
+
+```bash
+cd Application-Code/frontend
+npm ci
+npm start
+```
+
+The UI defaults to http://127.0.0.1:3500/api/tasks in local mode. Set REACT_APP_BACKEND_URL when deploying it elsewhere. No cloud deployment is performed.
