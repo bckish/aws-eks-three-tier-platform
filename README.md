@@ -23,7 +23,7 @@ terraform -chdir=Jenkins-Server-TF init -backend=false
 terraform -chdir=Jenkins-Server-TF validate
 ```
 
-No AWS credentials are needed for syntax validation; provider downloads require internet access. For actual deployment, configure your own backend, account, ECR repositories, images, credentials, Kubernetes cluster and ingress domain. Review the Jenkins pipeline, including its publishing and manifest-update stages, before running it. Do not reuse upstream infrastructure or secrets. Cloud provisioning incurs cost and requires explicit approval.
+No AWS credentials are needed for syntax validation; provider downloads require internet access. For actual deployment, configure your own backend, account, ECR repositories, images, credentials, Kubernetes cluster and ingress domain. The Jenkins jobs require configured tools and credentials; the default build checks out the current SCM revision, scans the image, and does not publish. Enable PUBLISH_IMAGE only on an approved run. Update GitOps manifests via a separate reviewed PR. Do not reuse upstream infrastructure or secrets. Cloud provisioning incurs cost and requires explicit approval.
 
 The backend exposes /healthz, /ready and /started. Automated application tests and reproducible npm lockfiles are still gaps. The original [walkthrough](https://amanpathakdevops.medium.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-fbbfdb956d1a) explains the intended full deployment.
 
