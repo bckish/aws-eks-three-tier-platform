@@ -1,46 +1,33 @@
-const tasks = require("./routes/tasks");
-const connection = require("./db");
 const cors = require("cors");
 const express = require("express");
-const app = express();
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
+const connect = require("./db");
+const { createTaskRouter, memoryStore, mongoStore } = require("./routes/tasks");
 
-connection();
+function createApp({ local = false } = {}) {
+    const app = express();
+    app.use(express.json());
+    app.use(cors());
+    app.get(["/ok", "/healthz", "/started"], (req, res) => res.status(200).send("Healthy"));
+    app.get("/ready", (req, res) => {
+        const ready = local || mongoose.connection.readyState === 1;
+        res.status(ready ? 200 : 503).send(ready ? "Ready" : "Not Ready");
+    });
+    app.use("/api/tasks", createTaskRouter(local ? memoryStore() : mongoStore()));
+    return app;
+}
 
-app.use(express.json());
-app.use(cors());
-
-// Health check endpoints
-
-// Basic health check to see if the server is running
-app.get('/healthz', (req, res) => {
-    res.status(200).send('Healthy');
-});
-
-let lastReadyState = null;  
-// Readiness check to see if the server is ready to serve requests
-app.get('/ready', (req, res) => {
-    // Here you can add logic to check database connection or other dependencies
-    const isDbConnected = mongoose.connection.readyState === 1;
-    if (isDbConnected !== lastReadyState) {
-        console.log(`Database readyState: ${mongoose.connection.readyState}`);
-        lastReadyState = isDbConnected;
+async function start() {
+    const local = process.env.LOCAL_MEMORY === "true";
+    if (!local) {
+        if (!process.env.MONGO_CONN_STR) throw new Error("Set MONGO_CONN_STR, or explicitly set LOCAL_MEMORY=true for a temporary local demo");
+        await connect();
     }
-    
-    if (isDbConnected) {
-        res.status(200).send('Ready');
-    } else {
-        res.status(503).send('Not Ready');
-    }
-});
+    const port = process.env.PORT || 3500;
+    const host = local ? "127.0.0.1" : "0.0.0.0";
+    createApp({ local }).listen(port, host, () => console.log(`Listening on ${host}:${port}`));
+}
 
-// Startup check to ensure the server has started correctly
-app.get('/started', (req, res) => {
-    // Assuming the server has started correctly if this endpoint is reachable
-    res.status(200).send('Started');
-});
+if (require.main === module) start().catch(error => { console.error(error.message); process.exitCode = 1; });
 
-app.use("/api/tasks", tasks);
-
-const port = process.env.PORT || 3500;
-app.listen(port, () => console.log(`Listening on port ${port}...`));
+module.exports = { createApp };
