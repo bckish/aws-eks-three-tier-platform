@@ -50,3 +50,24 @@ npm start
 ```
 
 The UI defaults to http://127.0.0.1:3500/api/tasks in local mode. Set REACT_APP_BACKEND_URL when deploying it elsewhere. No cloud deployment is performed.
+
+## Verified local Kubernetes and Argo CD results
+
+Test date: 25 November 2026. Environment: Docker Desktop on Apple Silicon, Kind v0.30.0, Kubernetes v1.34.3. Local images were imported into the isolated cluster; no images were pushed to a registry and no paid cloud resources were created.
+
+Tested code: `90d6c7d` (merged main). The local test used the actual frontend/backend Docker builds (`bckish-local/aws-task-api:runtime` and `bckish-local/aws-task-ui:runtime`), MongoDB 7, and a Kind-local persistent volume. The frontend responded over HTTP, the API readiness probe passed, and task create/read/update/delete passed against real MongoDB both before and after reconciliation.
+
+Argo CD chart 5.46.0 (Argo CD v2.8.3) reconciled a disposable local Git repository, not AWS or a remote GitOps repository. The initial Git revision `dcc5f41` deployed one ready API replica; the next revision `2e8ab9e` updated a proof ConfigMap and scaled the API to two ready replicas. The Application reported **Synced / Healthy**. Manually scaling the API back to one replica was corrected automatically to two.
+
+The [local Kubernetes fixture](local-k8s/) uses local image tags, local MongoDB credentials, a dynamic PVC and no cloud ingress. Build and load the images before applying it to a disposable cluster:
+
+```bash
+docker build -t bckish-local/aws-task-api:runtime Application-Code/backend
+docker build -t bckish-local/aws-task-ui:runtime Application-Code/frontend
+docker pull mongo:7
+kind load docker-image --name YOUR_LOCAL_KIND bckish-local/aws-task-api:runtime bckish-local/aws-task-ui:runtime mongo:7
+kubectl --kubeconfig /path/to/local-kind.kubeconfig create namespace argo-task
+kubectl --kubeconfig /path/to/local-kind.kubeconfig apply -k local-k8s
+```
+
+On Apple Silicon, if multi-platform image import fails, use `docker image save --platform linux/arm64` followed by `kind load image-archive`. Forward the API and UI services to localhost ports 23500 and 23300 respectively for the included local frontend configuration. The genuinely deployed local fixture does not validate live EKS, ECR, ALB, or Jenkins delivery.
