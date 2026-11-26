@@ -71,3 +71,9 @@ kubectl --kubeconfig /path/to/local-kind.kubeconfig apply -k local-k8s
 ```
 
 On Apple Silicon, if multi-platform image import fails, use `docker image save --platform linux/arm64` followed by `kind load image-archive`. Forward the API and UI services to localhost ports 23500 and 23300 respectively for the included local frontend configuration. The genuinely deployed local fixture does not validate live EKS, ECR, ALB, or Jenkins delivery.
+
+## Dependency maintenance (26 November 2026)
+
+Migrated the task API to Mongoose 8.24.11 and replaced the deprecated Material UI v4 controls with native React form controls. Clean npm installs, the frontend production build, and API tests with `NODE_OPTIONS=--throw-deprecation` passed. Rebuilt local Docker images passed authenticated MongoDB 7 CRUD and browser input, checkbox and deletion checks without browser errors or deprecation warnings. CI now fails on Node deprecation warnings during API tests.
+
+The rebuilt images also passed MongoDB-backed CRUD in local Kind. Argo CD chart 10.20.0 reconciled revisions `ba89310` and `08232e4`, became Synced/Healthy and restored two ready API replicas after deliberate drift.
